@@ -1,0 +1,10 @@
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+
+# OS
+Thumbs.db
+.DS_Store
