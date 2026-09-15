@@ -1,5 +1,6 @@
 package com.example.priutbot.config;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,17 @@ public class BotProperties {
 
     @Value("${bot.volunteer-chat-ids}")
     private String rawVolunteerChatIds;
+
+    @PostConstruct
+    public void rejectMalformedVolunteerChatIds() {
+        try {
+            getVolunteerChatIds();
+        } catch (NumberFormatException malformedChatId) {
+            throw new IllegalStateException(
+                    "bot.volunteer-chat-ids must be a comma-separated list of Telegram chat ids: "
+                            + malformedChatId.getMessage(), malformedChatId);
+        }
+    }
 
     public String getToken() {
         return token;

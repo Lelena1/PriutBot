@@ -9,6 +9,7 @@ import com.example.priutbot.content.ShelterContent;
 import com.example.priutbot.entity.BotStage;
 import com.example.priutbot.entity.Client;
 import com.example.priutbot.entity.ClientRole;
+import com.example.priutbot.entity.PetReport;
 import com.example.priutbot.entity.ShelterType;
 import com.example.priutbot.service.ClientService;
 import com.example.priutbot.service.ReportService;
@@ -101,9 +102,26 @@ public class PriutTelegramBot extends TelegramLongPollingBot {
             sendText(client.getChatId(), "Пожалуйста, пришлите контактные данные текстом.", null);
             return;
         }
-        clientService.saveContactInfo(client, message.getText().trim());
+        String contactInfo = message.getText().trim();
+        if (contactInfo.length() > Client.CONTACT_INFO_MAX_LENGTH) {
+            sendText(client.getChatId(), MessageTemplates.contactInfoTooLong(Client.CONTACT_INFO_MAX_LENGTH), null);
+            return;
+        }
+        clientService.saveContactInfo(client, contactInfo);
+        notifyVolunteers(MessageTemplates.contactDetailsAlertForVolunteers(
+                clientService.label(client), shelterName(client), contactInfo));
         sendText(client.getChatId(), "Спасибо! Ваши контакты сохранены, волонтёр свяжется с вами.",
                 keyboards.mainMenu());
+    }
+
+    private void notifyVolunteers(String alert) {
+        for (Long volunteerChatId : botProperties.getVolunteerChatIds()) {
+            sendText(volunteerChatId, alert, null);
+        }
+    }
+
+    private String shelterName(Client client) {
+        return client.getShelterType() != null ? client.getShelterType().getDisplayName() : "приют не выбран";
     }
 
     private void handleReportInput(Client client, Message message) {
@@ -128,6 +146,8 @@ public class PriutTelegramBot extends TelegramLongPollingBot {
                     "Текст получен! Теперь пришлите, пожалуйста, фото питомца.", null);
             case ALREADY_SUBMITTED -> sendText(client.getChatId(),
                     "Отчёт за сегодня уже принят, спасибо! Возвращайтесь завтра.", keyboards.mainMenu());
+            case TEXT_TOO_LONG -> sendText(client.getChatId(),
+                    MessageTemplates.reportTextTooLong(PetReport.DETAILS_MAX_LENGTH), null);
         }
     }
 
@@ -164,7 +184,7 @@ public class PriutTelegramBot extends TelegramLongPollingBot {
         if (botProperties.isVolunteer(client.getChatId())) {
             sb.append("\nКоманды волонтёра:\n")
                     .append("/newowner <chatId> — зарегистрировать нового хозяина (испытательный срок 30 дней)\n")
-                    .append("/pending — новые хозяева без отчёта 2+ дня или с истёкшим испытательным сроком\n")
+                    .append("/pending — список активных новых хозяев: статус, дата окончания срока, дата последнего отчёта\n")
                     .append("/decide <clientId> pass|fail|extend14|extend30 — решение по испытательному сроку\n")
                     .append("/warn <clientId> — отправить хозяину стандартное предупреждение о плохом отчёте\n");
         }
@@ -219,7 +239,7 @@ public class PriutTelegramBot extends TelegramLongPollingBot {
         }
         Optional<VolunteerService.DecisionResult> result = volunteerService.decide(clientId, parts[2]);
         if (result.isEmpty()) {
-            sendText(client.getChatId(), "Не найден такой clientId или неверное решение.", null);
+            sendText(client.getChatId(), "Не найден новый хозяин с таким clientId или неверное решение.", null);
             return;
         }
         sendText(client.getChatId(), "Решение отправлено хозяину.", null);
@@ -266,7 +286,8 @@ public class PriutTelegramBot extends TelegramLongPollingBot {
             sendText(client.getChatId(), "clientId должен быть числом.", null);
             return;
         }
-        Optional<Client> target = clientService.findById(targetId);
+        Optional<Client> target = clientService.findById(targetId)
+                .filter(candidate -> candidate.getRole() == ClientRole.NEW_OWNER);
         if (target.isEmpty()) {
             sendText(client.getChatId(), "Не найден хозяин с таким clientId.", null);
             return;
@@ -291,6 +312,7 @@ public class PriutTelegramBot extends TelegramLongPollingBot {
 
         Client client = clientService.getOrCreate(chatId, username);
         clientService.markAsVolunteerIfNeeded(client, botProperties.isVolunteer(chatId));
+        leavePendingInput(client);
 
         switch (data) {
             case Keyboards.SHELTER_CAT -> chooseShelterAndGreet(client, ShelterType.CAT);
@@ -310,13 +332,27 @@ public class PriutTelegramBot extends TelegramLongPollingBot {
                 sendText(chatId, "Напишите, пожалуйста, ваши контактные данные для связи (телефон и/или имя).", null);
             }
             default -> {
-                if (data.startsWith(Keyboards.INFO_PREFIX)) {
+                if (client.getShelterType() == null) {
+                    askToChooseShelter(client);
+                } else if (data.startsWith(Keyboards.INFO_PREFIX)) {
                     handleInfoTopic(client, data.substring(Keyboards.INFO_PREFIX.length()));
                 } else if (data.startsWith(Keyboards.ADOPT_PREFIX)) {
                     handleAdoptionTopic(client, data.substring(Keyboards.ADOPT_PREFIX.length()));
                 }
             }
         }
+    }
+
+    private void leavePendingInput(Client client) {
+        if (isAwaitingInput(client.getStage())) {
+            clientService.setStage(client, BotStage.MAIN_MENU);
+        }
+    }
+
+    private boolean isAwaitingInput(BotStage stage) {
+        return stage == BotStage.AWAITING_CONTACT_INFO
+                || stage == BotStage.AWAITING_CONTACT_ADOPTION
+                || stage == BotStage.AWAITING_REPORT;
     }
 
     private void chooseShelterAndGreet(Client client, ShelterType shelterType) {
@@ -368,6 +404,10 @@ public class PriutTelegramBot extends TelegramLongPollingBot {
             sendText(client.getChatId(), "Не удалось найти эту информацию.",
                     keyboards.adoptionMenu(client.getShelterType()));
         }
+    }
+
+    private void askToChooseShelter(Client client) {
+        sendText(client.getChatId(), MessageTemplates.CHOOSE_SHELTER_FIRST, keyboards.shelterSelection());
     }
 
     private void callVolunteer(Client client, String context) {

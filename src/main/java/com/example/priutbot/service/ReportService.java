@@ -14,7 +14,7 @@ import java.util.Optional;
 @Service
 public class ReportService {
 
-    public enum Outcome {COMPLETED, WAITING_FOR_TEXT, WAITING_FOR_PHOTO, ALREADY_SUBMITTED}
+    public enum Outcome {COMPLETED, WAITING_FOR_TEXT, WAITING_FOR_PHOTO, ALREADY_SUBMITTED, TEXT_TOO_LONG}
 
     private final PetReportRepository petReportRepository;
     private final ClientRepository clientRepository;
@@ -50,10 +50,14 @@ public class ReportService {
         if (isComplete(draft)) {
             return Outcome.ALREADY_SUBMITTED;
         }
-        draft.setPhotoFileId(fileId);
         if (captionOrNull != null && !captionOrNull.isBlank()) {
-            draft.setDetails(captionOrNull);
+            String details = detailsWith(draft, captionOrNull);
+            if (isTooLong(details)) {
+                return Outcome.TEXT_TOO_LONG;
+            }
+            draft.setDetails(details);
         }
+        draft.setPhotoFileId(fileId);
         petReportRepository.save(draft);
         return finishOrWait(client, draft, Outcome.WAITING_FOR_TEXT);
     }
@@ -64,11 +68,21 @@ public class ReportService {
         if (isComplete(draft)) {
             return Outcome.ALREADY_SUBMITTED;
         }
-        if (draft.getDetails() == null) {
-            draft.setDetails(text);
+        String details = detailsWith(draft, text);
+        if (isTooLong(details)) {
+            return Outcome.TEXT_TOO_LONG;
         }
+        draft.setDetails(details);
         petReportRepository.save(draft);
         return finishOrWait(client, draft, Outcome.WAITING_FOR_PHOTO);
+    }
+
+    private String detailsWith(PetReport draft, String text) {
+        return draft.getDetails() == null ? text : draft.getDetails() + "\n" + text;
+    }
+
+    private boolean isTooLong(String details) {
+        return details.length() > PetReport.DETAILS_MAX_LENGTH;
     }
 
     private Outcome finishOrWait(Client client, PetReport draft, Outcome waitingOutcome) {

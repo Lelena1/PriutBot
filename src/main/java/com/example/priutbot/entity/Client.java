@@ -22,6 +22,8 @@ import java.time.LocalDateTime;
 @Table(name = "client", uniqueConstraints = @UniqueConstraint(columnNames = "chat_id"))
 public class Client {
 
+    public static final int CONTACT_INFO_MAX_LENGTH = 255;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -43,7 +45,7 @@ public class Client {
     @Column(nullable = false)
     private BotStage stage = BotStage.SHELTER_SELECTION;
 
-    @Column(name = "contact_info")
+    @Column(name = "contact_info", length = CONTACT_INFO_MAX_LENGTH)
     private String contactInfo;
 
     @Column(name = "probation_start_date")

@@ -42,7 +42,8 @@ public class VolunteerService {
 
     @Transactional
     public Optional<DecisionResult> decide(Long clientId, String decisionCode) {
-        Optional<Client> maybeClient = clientRepository.findById(clientId);
+        Optional<Client> maybeClient = clientRepository.findById(clientId)
+                .filter(candidate -> candidate.getRole() == ClientRole.NEW_OWNER);
         if (maybeClient.isEmpty()) {
             return Optional.empty();
         }
