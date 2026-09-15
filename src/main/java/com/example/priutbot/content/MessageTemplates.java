@@ -21,6 +21,8 @@ public final class MessageTemplates {
                     + "животное у вас. Пожалуйста, свяжитесь с волонтёром приюта через кнопку "
                     + "«Позвать волонтёра», чтобы обсудить дальнейшие шаги по возврату животного в приют.";
 
+    public static final String CHOOSE_SHELTER_FIRST = "Пожалуйста, сначала выберите приют:";
+
     public static String probationExtended(int additionalDays) {
         return "Волонтёры приняли решение продлить испытательный срок ещё на " + additionalDays
                 + " дней. Пожалуйста, продолжайте присылать ежедневные отчёты о питомце.";
@@ -44,5 +46,20 @@ public final class MessageTemplates {
     public static String volunteerCallAlert(String requesterLabel, String shelterName, String context) {
         return "🔔 Пользователь " + requesterLabel + " (" + shelterName + ") просит позвать волонтёра.\n"
                 + "Контекст: " + context;
+    }
+
+    public static String contactDetailsAlertForVolunteers(String requesterLabel, String shelterName, String contactInfo) {
+        return "✍️ Пользователь " + requesterLabel + " (" + shelterName + ") оставил(а) контакты для связи:\n"
+                + contactInfo;
+    }
+
+    public static String contactInfoTooLong(int maxLength) {
+        return "Слишком длинный текст: контактные данные должны быть не длиннее " + maxLength
+                + " символов. Пожалуйста, сократите и пришлите ещё раз.";
+    }
+
+    public static String reportTextTooLong(int maxLength) {
+        return "Слишком длинное описание: в отчёте помещается не больше " + maxLength
+                + " символов текста (вместе с уже присланным). Пожалуйста, сократите и пришлите ещё раз.";
     }
 }

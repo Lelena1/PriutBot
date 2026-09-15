@@ -18,6 +18,8 @@ import java.time.LocalDateTime;
 @Table(name = "pet_report")
 public class PetReport {
 
+    public static final int DETAILS_MAX_LENGTH = 4000;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,7 +35,7 @@ public class PetReport {
     private String photoFileId;
 
     /** Free-text description covering diet, wellbeing and behavior changes. */
-    @Column(length = 4000)
+    @Column(length = DETAILS_MAX_LENGTH)
     private String details;
 
     @Column(name = "flagged_poor", nullable = false)
