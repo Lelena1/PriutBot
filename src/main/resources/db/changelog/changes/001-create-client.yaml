@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-client
+      author: Lelena1
+      # Databases created before Liquibase was added (by Hibernate ddl-auto=update)
+      # already have this table: just mark the changeset as applied.
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: client
+      changes:
+        - createTable:
+            tableName: client
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: chat_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_client_chat_id
+              - column:
+                  name: telegram_username
+                  type: VARCHAR(255)
+              - column:
+                  name: shelter_type
+                  type: VARCHAR(255)
+              - column:
+                  name: role
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: stage
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: contact_info
+                  type: VARCHAR(255)
+              - column:
+                  name: probation_start_date
+                  type: DATE
+              - column:
+                  name: probation_end_date
+                  type: DATE
+              - column:
+                  name: probation_status
+                  type: VARCHAR(255)
+              - column:
+                  name: last_report_date
+                  type: DATE
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false

@@ -1,0 +1,57 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-create-pet-report
+      author: Lelena1
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: pet_report
+      changes:
+        - createTable:
+            tableName: pet_report
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: client_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_pet_report_client
+                    references: client(id)
+              - column:
+                  name: report_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: photo_file_id
+                  type: VARCHAR(255)
+              - column:
+                  name: details
+                  type: VARCHAR(4000)
+              - column:
+                  name: flagged_poor
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: pet_report
+            indexName: idx_pet_report_client_date
+            columns:
+              - column:
+                  name: client_id
+              - column:
+                  name: report_date

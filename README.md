@@ -3,6 +3,8 @@
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.1-brightgreen)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14-blue)
+![Liquibase](https://img.shields.io/badge/Liquibase-migrations-2962FF)
+![Tests](https://img.shields.io/badge/tests-JUnit%205%20%7C%20Mockito-25A162)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
 Telegram-бот на Java (Spring Boot + PostgreSQL), который ведёт посетителя от выбора приюта до
@@ -44,7 +46,34 @@ flowchart TD
 
 ## Технологии
 
-Java 17, Spring Boot 3.1, Spring Data JPA, PostgreSQL, [Telegram Bots Java library](https://github.com/rubenlagus/TelegramBots) (long polling).
+Java 17, Spring Boot 3.1, Spring Data JPA, PostgreSQL, Liquibase, [Telegram Bots Java library](https://github.com/rubenlagus/TelegramBots) (long polling).
+Тесты: JUnit 5, Mockito, AssertJ, Spring Boot Test (`@DataJpaTest` на H2).
+
+## Схема базы данных
+
+Схемой управляет Liquibase: миграции лежат в
+[`src/main/resources/db/changelog`](src/main/resources/db/changelog) и применяются автоматически при
+запуске. Hibernate работает в режиме `validate` — только проверяет, что таблицы совпадают с
+сущностями, и сам схему не меняет.
+
+Если база уже создавалась старой версией бота (через `ddl-auto=update`), миграции увидят
+существующие таблицы и просто отметят себя как выполненные — данные не пострадают.
+
+## Тесты
+
+```bash
+mvn test
+```
+
+- **Модульные тесты (JUnit 5 + Mockito)** — бизнес-логика сервисов с подменой репозиториев и бота:
+  сбор отчёта из фото и текста в любом порядке, повторный отчёт за день, решения волонтёра по
+  испытательному сроку (`pass` / `fail` / `extend14` / `extend30`), напоминания о просроченных
+  отчётах и окончании испытательного срока.
+- **Интеграционные тесты (`@DataJpaTest`)** — репозитории на встроенной базе H2, схема которой
+  создаётся теми же миграциями Liquibase: проверяются производные запросы Spring Data, сортировка,
+  уникальность `chat_id` и то, что все миграции применились.
+
+PostgreSQL и токен Telegram для тестов не нужны.
 
 ## Настройка
 
